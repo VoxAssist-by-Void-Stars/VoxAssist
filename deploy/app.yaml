@@ -57,6 +57,8 @@ services:
       - key: LLM_RATE_LIMIT_PER_MINUTE
         scope: RUN_TIME
         value: "30"
+      # RUN_TIME only: NODE_ENV=production at build time makes the buildpack
+      # skip devDependencies, which Next needs (@tailwindcss/postcss, typescript).
       - key: NODE_ENV
-        scope: RUN_AND_BUILD_TIME
+        scope: RUN_TIME
         value: "production"

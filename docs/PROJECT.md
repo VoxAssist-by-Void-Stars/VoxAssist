@@ -194,6 +194,16 @@ Voice (M11) is the only skippable item.
     user 404; friend plan 403; upload→3 chunks embedded→self-ask hits it; friend-ask sees shared
     upload; **private upload invisible to friends, visible to self**; `next build` clean.
     Note: new uploads take ~10 s to appear in retrieval (Atlas index refresh).
+- **2026-07-11 — M10 DEPLOYED (◐ → one manual step left):** live at
+  **https://voxassist-8oef4.ondigitalocean.app** — DO App Platform app `05b48a77` (momen's DO
+  account, region nyc), deployed from the **public git URL** of `DevBranch` (no GitHub OAuth
+  needed), fake-auth build, secrets injected via API. Build gotcha fixed: `NODE_ENV=production`
+  at BUILD scope makes DO skip devDependencies (Next needs `@tailwindcss/postcss`) — now RUN_TIME
+  only (also fixed in `deploy/app.yaml`). Prod smoke test: page 200, signed-out 401, friend-plan
+  403 all pass. **⚠️ BLOCKED on Atlas Network Access:** Atlas rejects DO's IPs (TLS alert 80) —
+  Rayan must add `0.0.0.0/0` in Atlas → Network Access → Add IP Address, then ask/upload go live
+  (code is identical to the locally-verified build). Redeploys: push to `DevBranch` does NOT
+  auto-deploy (git-source); trigger via DO dashboard → Deploy, or the API.
 
 ---
 
