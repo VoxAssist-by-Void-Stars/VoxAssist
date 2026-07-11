@@ -56,7 +56,7 @@ async function main(): Promise<void> {
     }
   }
 
-  const store = getStore();
+  const store = await getStore();
   const result = await store.upsert(documents, chunks);
   console.log(
     `\nUpserted via IVectorStore: documents=${result.documents} chunks=${result.chunks}`,
