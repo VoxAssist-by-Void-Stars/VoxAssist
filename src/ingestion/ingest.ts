@@ -54,8 +54,27 @@ function mergeTags(...lists: string[][]): string[] {
  * Does not embed; embeddings are added later by the vector store.
  */
 export async function ingest(options: IngestOptions): Promise<IngestResult> {
-  const sharedFallback = options.shared ?? false;
   const files = await walkVault(options.vaultDir);
+  return ingestFiles(files, options);
+}
+
+/** In-memory file to ingest (e.g. an HTTP upload — no filesystem walk). */
+export interface InMemoryFile {
+  /** Vault-relative path with forward slashes, e.g. `uploads/notes.md`. */
+  path: string;
+  raw: string;
+  fileHash: string;
+}
+
+/**
+ * Parse → chunk → hash a set of already-loaded files. Shared by the vault
+ * walker path (CLI/seed) and the HTTP upload route.
+ */
+export async function ingestFiles(
+  files: InMemoryFile[],
+  options: Omit<IngestOptions, "vaultDir">,
+): Promise<IngestResult> {
+  const sharedFallback = options.shared ?? false;
 
   const documents: DocumentMeta[] = [];
   const chunks: Chunk[] = [];

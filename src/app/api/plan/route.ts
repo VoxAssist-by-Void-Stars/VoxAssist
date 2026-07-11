@@ -55,6 +55,14 @@ export async function POST(request: Request) {
   // Scope is passed through unchanged; retrieve enforces friend ⇒ shared === true.
   const { scope } = scoped;
 
+  // Plans are self-only: you can ask ABOUT a friend, but never plan for them.
+  if (scope.kind === "friend") {
+    return jsonError(
+      "Planning is only available for your own notes. Use ask to learn about a friend.",
+      403,
+    );
+  }
+
   try {
     const retriever = await getRetriever();
     const generator = await getGenerator();

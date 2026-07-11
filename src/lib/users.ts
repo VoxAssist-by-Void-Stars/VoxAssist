@@ -27,12 +27,19 @@ function parseClerkOwnerMap(): Record<string, string> {
   return out;
 }
 
-/** Resolve a login username to the vault `owner` id. Case-insensitive. */
+/**
+ * Resolve a login username to the vault `owner` id. Case-insensitive.
+ * Known aliases map explicitly; any other well-formed username resolves to
+ * itself so uploaded/seeded owners are addressable — routes then verify the
+ * owner actually has shared notes in Atlas (see src/lib/owners.ts).
+ */
 export function resolveUsernameToOwnerId(
   username: string,
 ): string | undefined {
   const key = username.trim().toLowerCase();
-  return USERNAME_TO_OWNER_ID[key];
+  if (USERNAME_TO_OWNER_ID[key]) return USERNAME_TO_OWNER_ID[key];
+  const normalized = key.replace(/[^a-z0-9_-]/g, "");
+  return normalized || undefined;
 }
 
 /**

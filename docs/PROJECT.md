@@ -88,8 +88,9 @@ and your AI agents already write). After a (fake) sign-in, a user can:
 | M5 | **Hybrid retrieval** — `$vectorSearch` + app-side RRF, scoped by `owner` | you | ⭐ | ☑ | a query returns ranked, cited chunks for one owner |
 | M6 | **`ask` (self)** — retrieve → Claude grounded answer + citations (verify via CLI) | you | ⭐ | ☑ | real question answered with sources |
 | M7 | **`plan`** — personalized brief → `.md` (verify via CLI) | you | ⭐ | ☑ | an idea yields a grounded brief |
-| M8 | **Web app** — sign-in + ask/plan UI + API (built on `lane/app`) | Claude | ⭐ | ◐ | sign in → ask → plan all work in the browser |
-| M9 | **Ask-a-friend** — username box → existence check → scoped query | Claude + you | ⭐ | ◐ | valid username → only their data; invalid → "not found" |
+| M8 | **Web app** — sign-in + ask/plan UI + API (built on `lane/app`) | Claude | ⭐ | ☑ | sign in → ask → plan all work in the browser |
+| M9 | **Ask-a-friend** — username box → existence check → scoped query | Claude + you | ⭐ | ☑ | valid username → only their data; invalid → "not found" |
+| M9b | **Upload notes** — .md/.txt → chunk → embed → Atlas, share flag | Claude | ⭐ | ☑ | upload → self-ask hits it; friends see only shared |
 | M10 | **Deploy** — DigitalOcean App Platform | both | ⭐ | ☐ | app reachable at a public URL |
 | M11 | **Voice** *(stretch)* — TTS read-aloud of the answer | — | ✧ | ☐ | answer plays as audio |
 | M12 | **Demo prep** — script + rehearsal | both | ⭐ | ☐ | rehearsed happy-path demo |
@@ -176,6 +177,23 @@ Voice (M11) is the only skippable item.
 - **2026-07-11 — hosting Q&A:** Atlas **cannot host the app** — it's the DB only. The Next.js app
   deploys to **DigitalOcean App Platform** at M10 (`deploy/` spec exists on `lane/app`); DO API key
   is in local `.env` (not read by app code).
+- **2026-07-11 — `lane/app` MERGED into DevBranch (M8/M9 ☑) + new rules:**
+  - Merge resolutions: real AI modules beat their stubs; their dynamic AI factory + rate limiting +
+    `AI_FALLBACK_TO_MOCK` kept; configs unified in `src/lib/config.ts`; README/env.example merged.
+  - **Auth is env-gated:** Clerk keys empty ⇒ `next.config.ts` aliases `@clerk/nextjs` →
+    `src/fake-auth/*` — type any username to sign in (cookie `vox_user`), user button signs out.
+    Setting both Clerk keys switches to real Clerk with zero code changes (Rayan chose to keep the
+    Clerk code path).
+  - **Plans are self-only (Rayan's rule):** you can *ask* about a friend but never *plan* for them —
+    enforced in `/api/plan` (403) and in the UI submit funnel (toast).
+  - **Upload notes (M9b):** header Upload button → `/api/upload` (multipart, ≤1 MB, .md/.txt) →
+    chunk → Voyage embed → Atlas. Owner is ALWAYS the signed-in user (frontmatter can't spoof it);
+    per-file **share switch**. Friend lookup is now DB-backed (`src/lib/owners.ts`: owner has
+    shared chunks?) so uploaded users are addressable; hardcoded map kept as alias layer.
+  - **Verified end-to-end** (12 checks): 401 signed-out; self/friend ask grounded + cited; unknown
+    user 404; friend plan 403; upload→3 chunks embedded→self-ask hits it; friend-ask sees shared
+    upload; **private upload invisible to friends, visible to self**; `next build` clean.
+    Note: new uploads take ~10 s to appear in retrieval (Atlas index refresh).
 
 ---
 

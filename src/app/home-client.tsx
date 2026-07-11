@@ -19,6 +19,7 @@ import {
   type HistoryPlanItem,
 } from "@/components/voxassist/recent-history";
 import { ThemeToggle } from "@/components/voxassist/theme-toggle";
+import { UploadNotes } from "@/components/voxassist/upload-notes";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requestPlan, streamAsk } from "@/lib/api";
@@ -157,6 +158,11 @@ function AppShell() {
         toast.error("Enter a username for friend scope.");
         return;
       }
+      // Plans are self-only: you can ask ABOUT a friend, but never plan AS them.
+      if (nextMode === "plan" && scope.kind === "friend") {
+        toast.error("Plans are built from your own notes — switch off friend scope to plan.");
+        return;
+      }
       if (nextMode === "ask") void handleAsk(value, scope);
       else void handlePlan(value, scope);
     },
@@ -259,6 +265,7 @@ function AppShell() {
                 ⌘K
               </kbd>
             </Button>
+            <UploadNotes />
             <ThemeToggle />
             <UserButton
               afterSignOutUrl="/"

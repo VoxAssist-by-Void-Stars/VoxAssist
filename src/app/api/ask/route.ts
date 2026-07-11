@@ -1,6 +1,7 @@
 import "@/lib/config";
 import { getGenerator, getRetriever } from "@/ai";
 import { requireUserId } from "@/lib/auth";
+import { ownerHasSharedNotes } from "@/lib/owners";
 import { checkLlmRateLimit } from "@/lib/rateLimit";
 import { askRequestSchema } from "@/lib/schemas";
 import { buildScope } from "@/lib/scope";
@@ -57,6 +58,11 @@ export async function POST(request: Request) {
 
   // Scope is passed through unchanged; retrieve enforces friend ⇒ shared === true.
   const { scope } = scoped;
+
+  // Friend target must actually exist with shared notes (plain lookup in Atlas).
+  if (scope.kind === "friend" && !(await ownerHasSharedNotes(scope.owner))) {
+    return jsonError(`Unknown username: ${username}`, 404);
+  }
 
   try {
     const retriever = await getRetriever();
