@@ -91,7 +91,7 @@ and your AI agents already write). After a (fake) sign-in, a user can:
 | M8 | **Web app** — sign-in + ask/plan UI + API (built on `lane/app`) | Claude | ⭐ | ☑ | sign in → ask → plan all work in the browser |
 | M9 | **Ask-a-friend** — username box → existence check → scoped query | Claude + you | ⭐ | ☑ | valid username → only their data; invalid → "not found" |
 | M9b | **Upload notes** — .md/.txt → chunk → embed → Atlas, share flag | Claude | ⭐ | ☑ | upload → self-ask hits it; friends see only shared |
-| M10 | **Deploy** — DigitalOcean App Platform | both | ⭐ | ☐ | app reachable at a public URL |
+| M10 | **Deploy** — DigitalOcean App Platform | both | ⭐ | ◐ | app reachable at a public URL |
 | M11 | **Voice** *(stretch)* — TTS read-aloud of the answer | — | ✧ | ☐ | answer plays as audio |
 | M12 | **Demo prep** — script + rehearsal | both | ⭐ | ☐ | rehearsed happy-path demo |
 

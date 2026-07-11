@@ -4,9 +4,13 @@
 # Create via:  doctl apps create --spec deploy/app.yaml
 # Or paste into App Platform → Create App → "App Spec"
 #
-# Set secret values in the DO dashboard (Settings → App-Level Environment Variables).
-# Hybrid demo: USE_MOCK_AI=false + AI_FALLBACK_TO_MOCK=true (real Atlas when ready;
-# mock LLM/retrieval if teammate modules or keys fail).
+# Uses the public git clone URL (no GitHub OAuth needed). Set secret values in
+# the DO dashboard (Settings → App-Level Environment Variables) or inject them
+# when creating via the API.
+#
+# Auth: with NO Clerk keys set, the app builds in fake-auth mode (type a
+# username to sign in). Add NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY (BUILD+RUN) and
+# CLERK_SECRET_KEY (RUN) to switch to real Clerk — build-time decision.
 
 name: voxassist
 region: nyc
@@ -14,10 +18,9 @@ region: nyc
 services:
   - name: web
     environment_slug: node-js
-    github:
-      repo: CynicalD/VoxAssist
-      branch: lane/app
-      deploy_on_push: true
+    git:
+      repo_clone_url: https://github.com/CynicalD/VoxAssist.git
+      branch: DevBranch
     build_command: npm run build
     run_command: npm start
     http_port: 3000
@@ -25,43 +28,32 @@ services:
     instance_size_slug: basic-xxs
     health_check:
       http_path: /
-      initial_delay_seconds: 20
+      initial_delay_seconds: 30
       period_seconds: 10
     envs:
       - key: MONGODB_URI
         scope: RUN_TIME
         type: SECRET
+      - key: MONGODB_DB
+        scope: RUN_TIME
+        value: "voxassist"
       - key: VOYAGE_API_KEY
-        scope: RUN_TIME
-        type: SECRET
-      - key: GEMINI_API_KEY
-        scope: RUN_TIME
-        type: SECRET
-      - key: ANTHROPIC_BASE_URL
         scope: RUN_TIME
         type: SECRET
       - key: ANTHROPIC_API_KEY
         scope: RUN_TIME
         type: SECRET
-      - key: CLERK_SECRET_KEY
-        scope: RUN_TIME
-        type: SECRET
-      # NEXT_PUBLIC_* must be present at build time for the client bundle.
-      - key: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-        scope: RUN_AND_BUILD_TIME
-        type: SECRET
-      - key: CLERK_OWNER_MAP
-        scope: RUN_TIME
-        type: SECRET
+      # Real AI in prod; no silent mock fallback (a hard error beats fake answers).
       - key: USE_MOCK_AI
         scope: RUN_AND_BUILD_TIME
         value: "false"
       - key: AI_FALLBACK_TO_MOCK
         scope: RUN_AND_BUILD_TIME
-        value: "true"
+        value: "false"
+      # Required for the in-app file-upload feature.
       - key: ALLOW_HTTP_INGEST
         scope: RUN_TIME
-        value: "false"
+        value: "true"
       - key: LLM_RATE_LIMIT_PER_MINUTE
         scope: RUN_TIME
         value: "30"
