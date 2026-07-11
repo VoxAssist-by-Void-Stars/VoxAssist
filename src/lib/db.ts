@@ -9,8 +9,19 @@ declare global {
 
 export function getClient(): Promise<MongoClient> {
   if (!global._voxassistMongo) {
-    const client = new MongoClient(config.mongoUri);
-    global._voxassistMongo = client.connect();
+    const client = new MongoClient(config.mongoUri, {
+      // Fail fast so a blocked/misconfigured connection surfaces a clear error
+      // instead of hanging a request for the 30s default.
+      serverSelectionTimeoutMS: 10_000,
+    });
+    global._voxassistMongo = client.connect().catch((err) => {
+      // Never cache a failed connection: clearing the global lets the next
+      // request retry. Otherwise a transient failure (e.g. an Atlas IP-allowlist
+      // change that hasn't propagated yet) would poison the process until it
+      // restarts.
+      global._voxassistMongo = undefined;
+      throw err;
+    });
   }
   return global._voxassistMongo;
 }
