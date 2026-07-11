@@ -37,8 +37,15 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# output
+# runtime / CLI output (plan briefs, etc.)
 /output
+
+# Real Obsidian (or other) vaults — keep local-only. Do NOT ignore sample-vault/:
+# that fixture is committed on purpose for local ingest demos and does not ship
+# as a web asset (Next only serves public/; deploy start is `npm start`).
+/vaults/
+/private-vault/
+/*.vault/
 
 # local planning / draft docs (not for repo)
 CURSOR_CODING_PLAN.md
