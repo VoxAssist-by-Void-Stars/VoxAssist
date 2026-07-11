@@ -68,15 +68,42 @@ export function AskBox({ currentUser, onAsk, onPlan, busy = false }: AskBoxProps
     }
   }
 
+  const chips =
+    mode === "ask"
+      ? [
+          "What is my stack?",
+          "How do we deploy?",
+          "Summarize auth with Clerk",
+        ]
+      : [
+          "Ship a RAG demo this weekend",
+          "Add friend-scope vault sharing",
+          "Dockerize and deploy to DO",
+        ]
+
   return (
     <form
       onSubmit={handleSubmit}
-      className="rounded-xl border border-border bg-card p-4 shadow-sm"
+      className="rounded-xl border border-border bg-card p-3 shadow-sm sm:p-4"
     >
       {/* Mode selector */}
       <div className="mb-3 inline-flex rounded-lg bg-muted p-1" role="tablist" aria-label="Request mode">
         <ModeTab active={mode === "ask"} onClick={() => setMode("ask")} icon={Send} label="Ask" />
         <ModeTab active={mode === "plan"} onClick={() => setMode("plan")} icon={Sparkles} label="Plan" />
+      </div>
+
+      <div className="mb-2 flex flex-wrap gap-1.5" aria-label="Example prompts">
+        {chips.map((chip) => (
+          <button
+            key={chip}
+            type="button"
+            disabled={busy}
+            onClick={() => setText(chip)}
+            className="rounded-full border border-border bg-muted/50 px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground disabled:opacity-50"
+          >
+            {chip}
+          </button>
+        ))}
       </div>
 
       <Label htmlFor="ask-input" className="sr-only">

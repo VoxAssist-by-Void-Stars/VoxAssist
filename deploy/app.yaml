@@ -4,8 +4,9 @@
 # Create via:  doctl apps create --spec deploy/app.yaml
 # Or paste into App Platform → Create App → "App Spec"
 #
-# Set secret values in the DO dashboard (Settings → App-Level Environment Variables)
-# or with: doctl apps update <app-id> --spec deploy/app.yaml after filling ENCRYPTION keys.
+# Set secret values in the DO dashboard (Settings → App-Level Environment Variables).
+# Hybrid demo: USE_MOCK_AI=false + AI_FALLBACK_TO_MOCK=true (real Atlas when ready;
+# mock LLM/retrieval if teammate modules or keys fail).
 
 name: voxassist
 region: nyc
@@ -49,9 +50,21 @@ services:
       - key: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
         scope: RUN_AND_BUILD_TIME
         type: SECRET
+      - key: CLERK_OWNER_MAP
+        scope: RUN_TIME
+        type: SECRET
       - key: USE_MOCK_AI
         scope: RUN_AND_BUILD_TIME
+        value: "false"
+      - key: AI_FALLBACK_TO_MOCK
+        scope: RUN_AND_BUILD_TIME
         value: "true"
+      - key: ALLOW_HTTP_INGEST
+        scope: RUN_TIME
+        value: "false"
+      - key: LLM_RATE_LIMIT_PER_MINUTE
+        scope: RUN_TIME
+        value: "30"
       - key: NODE_ENV
         scope: RUN_AND_BUILD_TIME
         value: "production"

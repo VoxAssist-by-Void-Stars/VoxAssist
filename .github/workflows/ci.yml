@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [lane/app, main, "feature/**"]
+  pull_request:
+    branches: [lane/app, main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit -p tsconfig.json
+      - name: Next.js build
+        env:
+          USE_MOCK_AI: "true"
+          AI_FALLBACK_TO_MOCK: "true"
+          # Valid-looking placeholders (force-dynamic page avoids prerender key checks)
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_Y2xlcmsudm94YXNzaXN0LmxvY2FsJA"
+          CLERK_SECRET_KEY: "sk_test_placeholder_secret_key_for_ci_only_xxxxxxxx"
+        run: npm run build

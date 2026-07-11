@@ -11,6 +11,9 @@ function env(key: string, fallback = ""): string {
 if (process.env.USE_MOCK_AI === undefined) {
   process.env.USE_MOCK_AI = "true";
 }
+if (process.env.AI_FALLBACK_TO_MOCK === undefined) {
+  process.env.AI_FALLBACK_TO_MOCK = "true";
+}
 
 export const config = {
   mongodbUri: env("MONGODB_URI"),
@@ -22,8 +25,16 @@ export const config = {
   clerkSecretKey: env("CLERK_SECRET_KEY"),
   /** True when USE_MOCK_AI === "true" (default if unset). */
   useMockAi: process.env.USE_MOCK_AI === "true",
+  /** Fall back to mocks when real retriever/generator fail. */
+  aiFallbackToMock: process.env.AI_FALLBACK_TO_MOCK !== "false",
+  /** Clerk userId:owner pairs for demo identity. */
+  clerkOwnerMap: env("CLERK_OWNER_MAP"),
+  /** Max LLM requests per user per minute; 0 disables. */
+  llmRateLimitPerMinute: Number(env("LLM_RATE_LIMIT_PER_MINUTE", "30")) || 0,
   /** Directory for /api/plan markdown briefs. */
   outputDir: env("OUTPUT_DIR", "./output"),
   /** Default owner for optional /api/ingest when body omits owner. */
   defaultIngestOwner: env("DEFAULT_INGEST_OWNER", "anonymous"),
+  /** When false, /api/ingest is disabled (prod default via ALLOW_HTTP_INGEST). */
+  allowHttpIngest: process.env.ALLOW_HTTP_INGEST === "true",
 } as const;

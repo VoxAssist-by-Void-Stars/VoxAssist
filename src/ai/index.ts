@@ -1,8 +1,31 @@
+/**
+ * AI factory — mock vs real teammate modules.
+ *
+ * ## Teammate seam (CynicalD)
+ * When `USE_MOCK_AI=false`, this factory dynamically imports:
+ *   - `./store`      → export `createStore(): IVectorStore`   (or `VectorStore` class / default)
+ *   - `./retrieval`  → export `createRetriever(): IRetriever`
+ *   - `./generation` → export `createGenerator(): IGenerator`
+ *
+ * Shapes are locked in `src/contract/types.ts` (`IVectorStore`, `IRetriever`, `IGenerator`).
+ * If the teammate ships a Python service, these three files become thin `fetch` clients
+ * that call that service while preserving the same TypeScript interfaces.
+ *
+ * ## Hybrid demo mode
+ * `getStore()` is strict when not mocking (seeding must hit real Atlas).
+ * `getRetriever()` / `getGenerator()` fall back to mocks when
+ * `AI_FALLBACK_TO_MOCK=true` and the real module is missing or throws.
+ */
+
 import type { IGenerator, IRetriever, IVectorStore } from "../contract/types";
 import { MockGenerator, MockRetriever, MockVectorStore } from "./mocks";
 
 function useMockAi(): boolean {
   return process.env.USE_MOCK_AI === "true";
+}
+
+function fallbackToMock(): boolean {
+  return process.env.AI_FALLBACK_TO_MOCK !== "false";
 }
 
 type StoreModule = {
@@ -49,8 +72,6 @@ function instantiate<T>(
 
 async function loadRealStore(): Promise<IVectorStore> {
   try {
-    // Teammate module — may be absent until integration.
-    // @ts-expect-error optional until Step 8
     const mod = (await import("./store")) as StoreModule;
     return instantiate(
       {
@@ -70,7 +91,6 @@ async function loadRealStore(): Promise<IVectorStore> {
 
 async function loadRealRetriever(): Promise<IRetriever> {
   try {
-    // @ts-expect-error optional until Step 8
     const mod = (await import("./retrieval")) as RetrieverModule;
     return instantiate(
       {
@@ -90,7 +110,6 @@ async function loadRealRetriever(): Promise<IRetriever> {
 
 async function loadRealGenerator(): Promise<IGenerator> {
   try {
-    // @ts-expect-error optional until Step 8
     const mod = (await import("./generation")) as GeneratorModule;
     return instantiate(
       {
@@ -111,15 +130,34 @@ async function loadRealGenerator(): Promise<IGenerator> {
 /** Factory: mocks when USE_MOCK_AI=true; otherwise guarded dynamic import of teammate modules. */
 export async function getStore(): Promise<IVectorStore> {
   if (useMockAi()) return new MockVectorStore();
+  // Seeding must be real — no silent mock fallback for the store.
   return loadRealStore();
 }
 
 export async function getRetriever(): Promise<IRetriever> {
   if (useMockAi()) return new MockRetriever();
-  return loadRealRetriever();
+  try {
+    return await loadRealRetriever();
+  } catch (err) {
+    if (!fallbackToMock()) throw err;
+    console.warn(
+      "[ai] real retriever unavailable; falling back to MockRetriever:",
+      err instanceof Error ? err.message : err,
+    );
+    return new MockRetriever();
+  }
 }
 
 export async function getGenerator(): Promise<IGenerator> {
   if (useMockAi()) return new MockGenerator();
-  return loadRealGenerator();
+  try {
+    return await loadRealGenerator();
+  } catch (err) {
+    if (!fallbackToMock()) throw err;
+    console.warn(
+      "[ai] real generator unavailable; falling back to MockGenerator:",
+      err instanceof Error ? err.message : err,
+    );
+    return new MockGenerator();
+  }
 }

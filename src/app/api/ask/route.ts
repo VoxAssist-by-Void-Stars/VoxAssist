@@ -1,6 +1,7 @@
 import "@/lib/config";
 import { getGenerator, getRetriever } from "@/ai";
 import { requireUserId } from "@/lib/auth";
+import { checkLlmRateLimit } from "@/lib/rateLimit";
 import { askRequestSchema } from "@/lib/schemas";
 import { buildScope } from "@/lib/scope";
 
@@ -32,6 +33,9 @@ function chunkAnswer(answer: string, size = 48): string[] {
 export async function POST(request: Request) {
   const authed = await requireUserId();
   if ("response" in authed) return authed.response;
+
+  const limited = checkLlmRateLimit(authed.userId);
+  if (limited) return jsonError(limited, 429);
 
   let body: unknown;
   try {

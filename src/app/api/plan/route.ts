@@ -5,6 +5,7 @@ import { getGenerator, getRetriever } from "@/ai";
 import type { PlanResponse } from "@/contract/types";
 import { requireUserId } from "@/lib/auth";
 import { config } from "@/lib/config";
+import { checkLlmRateLimit } from "@/lib/rateLimit";
 import { planRequestSchema } from "@/lib/schemas";
 import { buildScope } from "@/lib/scope";
 
@@ -29,6 +30,9 @@ function slugify(idea: string): string {
 export async function POST(request: Request) {
   const authed = await requireUserId();
   if ("response" in authed) return authed.response;
+
+  const limited = checkLlmRateLimit(authed.userId);
+  if (limited) return jsonError(limited, 429);
 
   let body: unknown;
   try {
