@@ -1,0 +1,65 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+Thumbs.db
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files
+.env
+.env*.local
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# runtime / CLI output (plan briefs, etc.)
+/output
+
+# Real Obsidian (or other) vaults — keep local-only. Do NOT ignore sample-vault/:
+# that fixture is committed on purpose for local ingest demos and does not ship
+# as a web asset (Next only serves public/; deploy start is `npm start`).
+/vaults/
+/private-vault/
+/*.vault/
+
+# local planning / draft docs (not for repo)
+CURSOR_CODING_PLAN.md
+MY_EXECUTION_PLAN_AND_TOOLING.md
+message.txt
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+Desktop.ini
+
+# clerk configuration (can include secrets)
+/.clerk/

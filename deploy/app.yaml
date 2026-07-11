@@ -1,0 +1,64 @@
+# DigitalOcean App Platform — VoxAssist
+# Spec: https://docs.digitalocean.com/products/app-platform/reference/app-spec/
+#
+# Create via:  doctl apps create --spec deploy/app.yaml
+# Or paste into App Platform → Create App → "App Spec"
+#
+# Uses the public git clone URL (no GitHub OAuth needed). Set secret values in
+# the DO dashboard (Settings → App-Level Environment Variables) or inject them
+# when creating via the API.
+#
+# Auth: with NO Clerk keys set, the app builds in fake-auth mode (type a
+# username to sign in). Add NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY (BUILD+RUN) and
+# CLERK_SECRET_KEY (RUN) to switch to real Clerk — build-time decision.
+
+name: voxassist
+region: nyc
+
+services:
+  - name: web
+    environment_slug: node-js
+    git:
+      repo_clone_url: https://github.com/CynicalD/VoxAssist.git
+      branch: DevBranch
+    build_command: npm run build
+    run_command: npm start
+    http_port: 3000
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    health_check:
+      http_path: /
+      initial_delay_seconds: 30
+      period_seconds: 10
+    envs:
+      - key: MONGODB_URI
+        scope: RUN_TIME
+        type: SECRET
+      - key: MONGODB_DB
+        scope: RUN_TIME
+        value: "voxassist"
+      - key: VOYAGE_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: ANTHROPIC_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+      # Real AI in prod; no silent mock fallback (a hard error beats fake answers).
+      - key: USE_MOCK_AI
+        scope: RUN_AND_BUILD_TIME
+        value: "false"
+      - key: AI_FALLBACK_TO_MOCK
+        scope: RUN_AND_BUILD_TIME
+        value: "false"
+      # Required for the in-app file-upload feature.
+      - key: ALLOW_HTTP_INGEST
+        scope: RUN_TIME
+        value: "true"
+      - key: LLM_RATE_LIMIT_PER_MINUTE
+        scope: RUN_TIME
+        value: "30"
+      # RUN_TIME only: NODE_ENV=production at build time makes the buildpack
+      # skip devDependencies, which Next needs (@tailwindcss/postcss, typescript).
+      - key: NODE_ENV
+        scope: RUN_TIME
+        value: "production"
