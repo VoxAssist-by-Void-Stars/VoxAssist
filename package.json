@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "ingest": "tsx scripts/ingest.ts",
+    "doctor": "tsx scripts/doctor.ts",
     "build": "next build",
     "start": "next start"
   },

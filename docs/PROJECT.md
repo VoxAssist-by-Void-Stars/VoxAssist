@@ -80,7 +80,7 @@ and your AI agents already write). After a (fake) sign-in, a user can:
 
 | # | Milestone | Owner | Tier | Status | Done when… |
 |---|-----------|-------|------|--------|------------|
-| M0 | **Project setup** — Next.js + TS app scaffold, deps, `.env`, Atlas cluster + keys | both | ⭐ | ☐ | app runs locally; env loads; connects to Atlas |
+| M0 | **Project setup** — Next.js + TS app scaffold, deps, `.env`, Atlas cluster + keys | both | ⭐ | ☑ | app runs locally; env loads; connects to Atlas |
 | M1 | **Atlas setup** — collection with `owner` + metadata; **vector index** + **search index** | you | ⭐ | ☐ | `$vectorSearch` + `$rankFusion` pipeline returns results |
 | M2 | **Core RAG lib** — parse frontmatter + heading-aware chunk | friend | ⭐ | ☐ | given files, produces chunks with metadata |
 | M3 | **Embed + upsert** — Voyage (batched) → Atlas, tagged by `owner` | you | ⭐ | ☐ | chunks stored with vectors + owner |
@@ -120,6 +120,22 @@ Voice (M11) is the only skippable item.
   Drafted **3 fabricated demo users** — `alex` (full-stack web), `priya` (ML/data), `marcus`
   (embedded) — each with `profile.md` / `stack.md` / `projects.md` + `owner` frontmatter, in
   `VoxAssist/seed/`. Intentionally distinct stacks so friend-queries contrast. Ready to ingest at M4.
+- **2026-07-11 — branch divergence resolved:** local `DevBranch` had an independent solo scaffold
+  (root `app/`, `lib/`, `next.config.mjs`, commit `0093fd9`) that collided with the team's shared
+  `src/`-based scaffold on `origin/DevBranch` (frontend + ingestion + mock AI). Merging as-is would
+  have produced duplicate `app/` vs `src/app/` dirs. **Decision:** adopt the team's `src/` scaffold as
+  canonical (reset `DevBranch` → `origin/DevBranch`; old commit safe in reflog) and port the solo
+  scaffold's unique value into it: `src/lib/config.ts` (real env config), `src/lib/db.ts` (cached
+  Mongo client + `ping`), `scripts/doctor.ts` (+ `npm run doctor`), the full README, and a merged
+  `.env.example`. `USE_MOCK_AI=true` remains the default so the app boots keyless.
+- **2026-07-11 — synthesis models locked (all-Claude):** dropped Gemini — **Claude API for
+  everything**. Split by task: `ask` → small/fast model (`CLAUDE_ASK_MODEL`, default
+  `claude-haiku-4-5-20251001`); `plan` → **Opus 4.8** (`CLAUDE_PLAN_MODEL`, default `claude-opus-4-8`).
+  Both env-overridable via `src/lib/config.ts`.
+- **2026-07-11 — M0 DONE:** Atlas connection string added to `.env` (`MONGODB_URI`), `npm run doctor`
+  reports **MongoDB ping: connected**, typecheck clean. Only `VOYAGE_API_KEY` still to add (needed at
+  M3 embeddings, not before). Next up: **M1 — Atlas collection (`owner` + metadata) + vector & search
+  indexes.**
 
 ---
 
