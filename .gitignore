@@ -61,7 +61,5 @@ message.txt
 # OS
 Desktop.ini
 
-# Other fiels:
-
-/docs/BUILD_PLAN.md 
-/docs/IDEA_ASSESSMENT.md 
+# clerk configuration (can include secrets)
+/.clerk/

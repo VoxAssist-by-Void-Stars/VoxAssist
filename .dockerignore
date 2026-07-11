@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+output
+sample-vault
+coverage
+.env
+.env*.local
+*.tsbuildinfo
+CURSOR_CODING_PLAN.md
+MY_EXECUTION_PLAN_AND_TOOLING.md
+message.txt
+.cursor
+agent-transcripts
