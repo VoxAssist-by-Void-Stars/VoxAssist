@@ -1,6 +1,8 @@
 import "@/lib/config";
 import { getGenerator, getRetriever } from "@/ai";
+import { requireUserId } from "@/lib/auth";
 import { askRequestSchema } from "@/lib/schemas";
+import { buildScope } from "@/lib/scope";
 
 export const runtime = "nodejs";
 
@@ -28,6 +30,9 @@ function chunkAnswer(answer: string, size = 48): string[] {
 }
 
 export async function POST(request: Request) {
+  const authed = await requireUserId();
+  if ("response" in authed) return authed.response;
+
   let body: unknown;
   try {
     body = await request.json();
@@ -40,7 +45,14 @@ export async function POST(request: Request) {
     return jsonError("Invalid AskRequest", 400, parsed.error.flatten());
   }
 
-  const { question, scope } = parsed.data;
+  const { question, username } = parsed.data;
+  const scoped = buildScope(authed.userId, username);
+  if (!scoped.ok) {
+    return jsonError(scoped.error, 404);
+  }
+
+  // Scope is passed through unchanged; retrieve enforces friend ⇒ shared === true.
+  const { scope } = scoped;
 
   try {
     const retriever = await getRetriever();

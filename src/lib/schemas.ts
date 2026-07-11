@@ -1,24 +1,15 @@
 import { z } from "zod";
 
-export const scopeSchema = z.discriminatedUnion("kind", [
-  z.object({
-    kind: z.literal("self"),
-    owner: z.string().min(1),
-  }),
-  z.object({
-    kind: z.literal("friend"),
-    owner: z.string().min(1),
-  }),
-]);
-
+/** Optional friend target; Scope.owner is never taken from the client. */
 export const askRequestSchema = z.object({
   question: z.string().min(1),
-  scope: scopeSchema,
+  /** Friend username lookup → friend scope; omit for self. */
+  username: z.string().min(1).optional(),
 });
 
 export const planRequestSchema = z.object({
   idea: z.string().min(1),
-  scope: scopeSchema,
+  username: z.string().min(1).optional(),
 });
 
 export const ingestRequestSchema = z.object({

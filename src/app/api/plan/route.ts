@@ -3,8 +3,10 @@ import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { getGenerator, getRetriever } from "@/ai";
 import type { PlanResponse } from "@/contract/types";
+import { requireUserId } from "@/lib/auth";
 import { config } from "@/lib/config";
 import { planRequestSchema } from "@/lib/schemas";
+import { buildScope } from "@/lib/scope";
 
 export const runtime = "nodejs";
 
@@ -25,6 +27,9 @@ function slugify(idea: string): string {
 }
 
 export async function POST(request: Request) {
+  const authed = await requireUserId();
+  if ("response" in authed) return authed.response;
+
   let body: unknown;
   try {
     body = await request.json();
@@ -37,7 +42,14 @@ export async function POST(request: Request) {
     return jsonError("Invalid PlanRequest", 400, parsed.error.flatten());
   }
 
-  const { idea, scope } = parsed.data;
+  const { idea, username } = parsed.data;
+  const scoped = buildScope(authed.userId, username);
+  if (!scoped.ok) {
+    return jsonError(scoped.error, 404);
+  }
+
+  // Scope is passed through unchanged; retrieve enforces friend ⇒ shared === true.
+  const { scope } = scoped;
 
   try {
     const retriever = await getRetriever();
