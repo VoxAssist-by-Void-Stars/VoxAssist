@@ -14,6 +14,13 @@ function required(name: string): string {
   return v;
 }
 
+function envInt(key: string, fallback: number): number {
+  const raw = process.env[key];
+  if (raw === undefined || raw === "") return fallback;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 // Default to mocks unless explicitly disabled — matches .env.example.
 if (process.env.USE_MOCK_AI === undefined) {
   process.env.USE_MOCK_AI = "true";
@@ -25,7 +32,6 @@ if (process.env.AI_FALLBACK_TO_MOCK === undefined) {
 export const config = {
   mongodbUri: env("MONGODB_URI"),
   voyageApiKey: env("VOYAGE_API_KEY"),
-  geminiApiKey: env("GEMINI_API_KEY"),
   anthropicBaseUrl: env("ANTHROPIC_BASE_URL"),
   anthropicApiKey: env("ANTHROPIC_API_KEY"),
   clerkPublishableKey: env("NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY"),
@@ -37,13 +43,22 @@ export const config = {
   /** Clerk userId:owner pairs for demo identity. */
   clerkOwnerMap: env("CLERK_OWNER_MAP"),
   /** Max LLM requests per user per minute; 0 disables. */
-  llmRateLimitPerMinute: Number(env("LLM_RATE_LIMIT_PER_MINUTE", "30")) || 0,
+  llmRateLimitPerMinute: envInt("LLM_RATE_LIMIT_PER_MINUTE", 30),
   /** Directory for /api/plan markdown briefs. */
   outputDir: env("OUTPUT_DIR", "./output"),
   /** Default owner for optional /api/ingest when body omits owner. */
   defaultIngestOwner: env("DEFAULT_INGEST_OWNER", "anonymous"),
   /** When false, /api/ingest is disabled (prod default via ALLOW_HTTP_INGEST). */
   allowHttpIngest: process.env.ALLOW_HTTP_INGEST === "true",
+
+  // --- ElevenLabs TTS ---
+  elevenLabsApiKey: env("ELEVENLABS_API_KEY"),
+  elevenLabsVoiceId: env("ELEVENLABS_VOICE_ID"),
+  elevenLabsModel: env("ELEVENLABS_MODEL", "eleven_flash_v2_5"),
+
+  // --- Upload quotas (guard M0 disk) ---
+  uploadMaxChunksPerUser: envInt("UPLOAD_MAX_CHUNKS_PER_USER", 500),
+  uploadMaxDocsPerUser: envInt("UPLOAD_MAX_DOCS_PER_USER", 50),
 
   // --- retrieval / synthesis (real AI modules) ---
   /** Strict getter: throws when MONGODB_URI is missing (real store/retrieval). */

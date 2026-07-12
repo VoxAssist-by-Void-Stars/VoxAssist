@@ -57,6 +57,21 @@ services:
       - key: LLM_RATE_LIMIT_PER_MINUTE
         scope: RUN_TIME
         value: "30"
+      - key: UPLOAD_MAX_CHUNKS_PER_USER
+        scope: RUN_TIME
+        value: "500"
+      - key: UPLOAD_MAX_DOCS_PER_USER
+        scope: RUN_TIME
+        value: "50"
+      - key: ELEVENLABS_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: ELEVENLABS_VOICE_ID
+        scope: RUN_TIME
+        type: SECRET
+      - key: ELEVENLABS_MODEL
+        scope: RUN_TIME
+        value: "eleven_flash_v2_5"
       # RUN_TIME only: NODE_ENV=production at build time makes the buildpack
       # skip devDependencies, which Next needs (@tailwindcss/postcss, typescript).
       - key: NODE_ENV

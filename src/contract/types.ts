@@ -59,6 +59,6 @@ export interface IRetriever {
   retrieve(query: string, scope: Scope, topN?: number): Promise<RetrievalResult>;
 }
 export interface IGenerator {
-  ask(question: string, context: RetrievalResult): Promise<AskResponse>;   // Gemini, grounded + cite
-  plan(idea: string, context: RetrievalResult): Promise<PlanResponse>;     // Opus 4.8 via Gradient
+  ask(question: string, context: RetrievalResult): Promise<AskResponse>;   // Claude Haiku, grounded + cite
+  plan(idea: string, context: RetrievalResult): Promise<PlanResponse>;     // Claude Opus
 }

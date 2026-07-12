@@ -139,3 +139,31 @@ export async function requestPlan(req: PlanRequest): Promise<PlanResponse> {
 
   return (await res.json()) as PlanResponse;
 }
+
+/**
+ * POST /api/tts — fetch ElevenLabs audio as a Blob.
+ * Throws on non-OK (including 501 when TTS is not configured).
+ */
+export async function fetchTts(text: string): Promise<Blob> {
+  const res = await fetch("/api/tts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+
+  if (res.status === 401) {
+    throw new Error("Unauthorized — sign in to use TTS.");
+  }
+  if (!res.ok) {
+    let detail = `tts failed: ${res.status}`;
+    try {
+      const err = (await res.json()) as { error?: string };
+      if (err.error) detail = err.error;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(detail);
+  }
+
+  return res.blob();
+}

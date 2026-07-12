@@ -1,10 +1,11 @@
-import "@/lib/config";
 import { getStore } from "@/ai";
 import { requireUserId } from "@/lib/auth";
+import { config } from "@/lib/config";
 import { ingestFiles } from "@/ingestion/ingest";
 import { sha256 } from "@/ingestion/hash";
-import { resolveClerkUserIdToOwner } from "@/lib/users";
+import { countOwnerChunks, countOwnerDocuments } from "@/lib/owners";
 import { checkLlmRateLimit } from "@/lib/rateLimit";
+import { resolveClerkUserIdToOwner } from "@/lib/users";
 
 export const runtime = "nodejs";
 
@@ -78,6 +79,24 @@ export async function POST(request: Request) {
     for (const c of chunks) {
       c.owner = owner;
       c.shared = shared;
+    }
+
+    // Per-owner caps guard Atlas M0 disk from open-upload growth.
+    const [existingChunks, existingDocs] = await Promise.all([
+      countOwnerChunks(owner),
+      countOwnerDocuments(owner),
+    ]);
+    if (existingChunks + chunks.length > config.uploadMaxChunksPerUser) {
+      return jsonError(
+        `Upload quota exceeded: max ${config.uploadMaxChunksPerUser} chunks per user`,
+        413,
+      );
+    }
+    if (existingDocs + documents.length > config.uploadMaxDocsPerUser) {
+      return jsonError(
+        `Upload quota exceeded: max ${config.uploadMaxDocsPerUser} documents per user`,
+        413,
+      );
     }
 
     const store = await getStore();
