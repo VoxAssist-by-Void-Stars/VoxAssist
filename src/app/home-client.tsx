@@ -2,7 +2,7 @@
 
 import { SignIn, SignedIn, SignedOut, UserButton, useUser } from "@clerk/nextjs";
 import { AudioLines, Keyboard } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { CompassMark } from "@/components/voxassist/compass-mark";import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AnswerPanel } from "@/components/voxassist/answer-panel";
 import { AskBox, type AskMode } from "@/components/voxassist/ask-box";
@@ -24,6 +24,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requestPlan, streamAsk } from "@/lib/api";
 import type { Citation, PlanResponse, Scope } from "@/lib/contract";
+import { parseVoiceCommand } from "@/lib/voice/commands";
+import { VOICE_HELP_TEXT, VOICE_QUICK_HELP_TEXT } from "@/lib/voice/help";
+import { useVoicePreferences } from "@/lib/voice/preferences";
+import { useTts } from "@/lib/voice/use-tts";
+import { useVoiceInput } from "@/lib/voice/use-voice-input";
 
 export function HomeClient() {
   return (
@@ -79,6 +84,45 @@ function AppShell() {
   const abortRef = useRef<AbortController | null>(null);
   const askInputRef = useRef<HTMLTextAreaElement>(null);
 
+  // Latest values for voice command handlers (avoid stale closures).
+  const modeRef = useRef(mode);
+  const textRef = useRef(text);
+  const answerRef = useRef(answer);
+  const friendModeRef = useRef(friendMode);
+  const targetUserRef = useRef(targetUser);
+  const currentUserRef = useRef(currentUser);
+  useEffect(() => {
+    modeRef.current = mode;
+  }, [mode]);
+  useEffect(() => {
+    textRef.current = text;
+  }, [text]);
+  useEffect(() => {
+    answerRef.current = answer;
+  }, [answer]);
+  useEffect(() => {
+    friendModeRef.current = friendMode;
+  }, [friendMode]);
+  useEffect(() => {
+    targetUserRef.current = targetUser;
+  }, [targetUser]);
+  useEffect(() => {
+    currentUserRef.current = currentUser;
+  }, [currentUser]);
+
+  const { speaking, supported: speechAvailable, speak, stop: stopSpeak } =
+    useTts();
+
+  const voicePrefs = useVoicePreferences();
+  const autoReadAnswerRef = useRef(voicePrefs.autoReadAnswer);
+  const autoSubmitRef = useRef(voicePrefs.autoSubmitOnDictation);
+  useEffect(() => {
+    autoReadAnswerRef.current = voicePrefs.autoReadAnswer;
+  }, [voicePrefs.autoReadAnswer]);
+  useEffect(() => {
+    autoSubmitRef.current = voicePrefs.autoSubmitOnDictation;
+  }, [voicePrefs.autoSubmitOnDictation]);
+
   const pushHistory = useCallback((item: HistoryItem) => {
     setHistory((prev) => [item, ...prev.filter((h) => h.id !== item.id)].slice(0, 12));
   }, []);
@@ -89,16 +133,21 @@ function AppShell() {
       const controller = new AbortController();
       abortRef.current = controller;
 
+      stopSpeak();
       setQuestion(q);
       setAnswer("");
       setCitations([]);
       setAsking(true);
       setLastAskScope(scope);
+      let fullAnswer = "";
       try {
         await streamAsk(
           { question: q, scope },
           {
-            onDelta: (chunk) => setAnswer((prev) => prev + chunk),
+            onDelta: (chunk) => {
+              fullAnswer += chunk;
+              setAnswer((prev) => prev + chunk);
+            },
             onCitations: (c) => setCitations(c),
             signal: controller.signal,
           },
@@ -112,6 +161,13 @@ function AppShell() {
           friendMode: scope.kind === "friend",
           targetUser: scope.kind === "friend" ? scope.owner : "",
         });
+        if (
+          !controller.signal.aborted &&
+          autoReadAnswerRef.current &&
+          fullAnswer.trim()
+        ) {
+          void speak(fullAnswer);
+        }
       } catch (err) {
         if (!controller.signal.aborted) {
           toast.error((err as Error).message || "Failed to get an answer.");
@@ -120,11 +176,12 @@ function AppShell() {
         setAsking(false);
       }
     },
-    [pushHistory],
+    [pushHistory, speak, stopSpeak],
   );
 
   const handlePlan = useCallback(
     async (idea: string, scope: Scope) => {
+      stopSpeak();
       setPlanning(true);
       setPlan(null);
       try {
@@ -147,7 +204,7 @@ function AppShell() {
         setPlanning(false);
       }
     },
-    [pushHistory],
+    [pushHistory, stopSpeak],
   );
 
   const submit = useCallback(
@@ -169,6 +226,101 @@ function AppShell() {
     [handleAsk, handlePlan],
   );
 
+  const submitRef = useRef(submit);
+  useEffect(() => {
+    submitRef.current = submit;
+  }, [submit]);
+
+  const speakHelp = useCallback(() => {
+    toast.message("Voice help", { description: VOICE_HELP_TEXT });
+    void speak(VOICE_HELP_TEXT);
+  }, [speak]);
+
+  const speakQuickHelp = useCallback(() => {
+    void speak(VOICE_QUICK_HELP_TEXT);
+  }, [speak]);
+
+  const readInput = useCallback(() => {
+    const draft = textRef.current.trim();
+    if (!draft) {
+      toast.error("Nothing to read — type or dictate first.");
+      return;
+    }
+    void speak(draft);
+  }, [speak]);
+
+  const handleVoiceTranscript = useCallback(
+    (transcript: string) => {
+      const parsed = parseVoiceCommand(transcript);
+      if (parsed.kind === "dictation") {
+        if (!parsed.text) return;
+        const prev = textRef.current.trim();
+        const combined = prev ? `${prev} ${parsed.text}` : parsed.text;
+        setText(combined);
+        textRef.current = combined;
+
+        if (autoSubmitRef.current) {
+          toast.message("Dictated — sending…", { description: parsed.text });
+          const scope = buildScope(
+            currentUserRef.current,
+            friendModeRef.current,
+            targetUserRef.current,
+          );
+          submitRef.current(modeRef.current, combined, scope);
+        } else {
+          toast.message("Dictated", { description: parsed.text });
+        }
+        return;
+      }
+
+      switch (parsed.action) {
+        case "help":
+          speakHelp();
+          break;
+        case "stop":
+          stopSpeak();
+          abortRef.current?.abort();
+          setAsking(false);
+          toast.message("Stopped.");
+          break;
+        case "read": {
+          const current = answerRef.current.trim();
+          if (!current) {
+            toast.error("Nothing to read yet.");
+            return;
+          }
+          void speak(current);
+          break;
+        }
+        case "switch-ask":
+          setMode("ask");
+          toast.message("Switched to Ask mode.");
+          break;
+        case "switch-plan":
+          setMode("plan");
+          toast.message("Switched to Plan mode.");
+          break;
+        case "send": {
+          const scope = buildScope(
+            currentUserRef.current,
+            friendModeRef.current,
+            targetUserRef.current,
+          );
+          submitRef.current(modeRef.current, textRef.current, scope);
+          break;
+        }
+      }
+    },
+    [speak, speakHelp, stopSpeak],
+  );
+
+  const voice = useVoiceInput({
+    onTranscript: handleVoiceTranscript,
+    onError: (message) => toast.error(message),
+    onRecordingStart: () => stopSpeak(),
+    mode: voicePrefs.listeningMode,
+  });
+
   const focusAsk = useCallback(() => {
     askInputRef.current?.focus();
   }, []);
@@ -184,6 +336,24 @@ function AppShell() {
     },
     [currentUser, submit],
   );
+
+  const toggleAnswerSpeak = useCallback(() => {
+    if (speaking) {
+      stopSpeak();
+      return;
+    }
+    const current = answer.trim();
+    if (!current) return;
+    void speak(current);
+  }, [answer, speak, speaking, stopSpeak]);
+
+  // Stop TTS when a new answer starts streaming.
+  useEffect(() => {
+    if (asking) stopSpeak();
+  }, [asking, stopSpeak]);
+
+  const voiceRecording = voice.recording;
+  const cancelRecording = voice.cancel;
 
   // Global shortcuts: Ctrl/Cmd+K palette, / focus, Esc cancel
   useEffect(() => {
@@ -206,6 +376,15 @@ function AppShell() {
           setPaletteOpen(false);
           return;
         }
+        if (voiceRecording) {
+          cancelRecording();
+          toast.message("Recording cancelled.");
+          return;
+        }
+        if (speaking) {
+          stopSpeak();
+          return;
+        }
         if (asking) {
           abortRef.current?.abort();
           setAsking(false);
@@ -221,7 +400,15 @@ function AppShell() {
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [asking, focusAsk, paletteOpen]);
+  }, [
+    asking,
+    cancelRecording,
+    focusAsk,
+    paletteOpen,
+    speaking,
+    stopSpeak,
+    voiceRecording,
+  ]);
 
   const searchingOwner =
     lastAskScope?.kind === "friend" ? lastAskScope.owner : currentUser;
@@ -237,10 +424,7 @@ function AppShell() {
       <header className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center gap-2 px-3 py-3 sm:gap-3 sm:px-6">
           <div className="flex min-w-0 items-center gap-2">
-            <AudioLines
-              className="size-5 shrink-0 text-primary"
-              aria-hidden="true"
-            />
+            <CompassMark filled className="size-5 shrink-0 text-primary" />
             <span className="truncate font-semibold tracking-tight">
               VoxAssist
             </span>
@@ -288,7 +472,7 @@ function AppShell() {
             <kbd className="rounded border border-border px-1 font-mono text-[10px]">
               ⌘K
             </kbd>{" "}
-            for commands.
+            for commands, or use the mic for voice.
           </p>
         </div>
 
@@ -306,6 +490,28 @@ function AppShell() {
           onAsk={handleAsk}
           onPlan={handlePlan}
           busy={asking || planning}
+          voiceState={{
+            supported: voice.supported,
+            recording: voice.recording,
+            busy: voice.busy,
+          }}
+          onVoiceToggle={() => {
+            if (!voice.supported && !voice.recording) {
+              toast.error("Voice input is not supported in this browser.");
+              return;
+            }
+            void voice.toggle();
+          }}
+          voicePrefs={{
+            autoSubmitOnDictation: voicePrefs.autoSubmitOnDictation,
+            listeningMode: voicePrefs.listeningMode,
+            autoReadAnswer: voicePrefs.autoReadAnswer,
+          }}
+          onAutoSubmitChange={voicePrefs.setAutoSubmitOnDictation}
+          onListeningModeChange={voicePrefs.setListeningMode}
+          onAutoReadAnswerChange={voicePrefs.setAutoReadAnswer}
+          onQuickHelp={speakQuickHelp}
+          onReadInput={readInput}
         />
 
         <RecentHistory
@@ -325,6 +531,9 @@ function AppShell() {
             idle={!asking && !answer}
             searchingOwner={searchingOwner}
             friendScope={lastAskScope?.kind === "friend"}
+            speaking={speaking}
+            speechAvailable={speechAvailable}
+            onToggleSpeak={toggleAnswerSpeak}
             onDraftPlan={
               answer
                 ? () => {
@@ -361,6 +570,7 @@ function AppShell() {
           if (match) rerunHistory(match);
         }}
         recent={paletteRecent}
+        onHelp={speakHelp}
       />
     </div>
   );

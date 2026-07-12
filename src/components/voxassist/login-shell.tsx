@@ -2,10 +2,11 @@
 
 import type React from "react"
 import { useState } from "react"
-import { AudioLines, ArrowRight, ShieldCheck, Sparkles, Quote } from "lucide-react"
+import { ArrowRight, ShieldCheck, Sparkles, Quote } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { CompassMark } from "@/components/voxassist/compass-mark"
 
 export interface LoginShellProps {
   /** Called with the entered credentials. Wire this to Clerk / your auth backend. */
@@ -32,9 +33,9 @@ export function LoginShell({ onSubmit, children, loading = false, error }: Login
 
   return (
     <div className="grid min-h-screen w-full lg:grid-cols-2">
-      <aside className="relative hidden flex-col justify-between overflow-hidden bg-primary p-10 text-primary-foreground lg:flex">
+      <aside className="relative hidden flex-col justify-between overflow-hidden bg-violet-700 p-10 text-primary-foreground lg:flex">
         <div className="flex items-center gap-2.5">
-          <AudioLines className="size-6" aria-hidden="true" />
+          <CompassMark className="size-6" />
           <span className="text-lg font-semibold tracking-tight">VoxAssist</span>
         </div>
 
@@ -81,7 +82,7 @@ export function LoginShell({ onSubmit, children, loading = false, error }: Login
       <main className="flex items-center justify-center p-6 sm:p-10">
         <div className="w-full max-w-sm">
           <div className="mb-8 flex items-center gap-2.5 lg:hidden">
-            <AudioLines className="size-6 text-primary" aria-hidden="true" />
+            <CompassMark className="size-6 text-primary" />
             <span className="text-lg font-semibold tracking-tight">VoxAssist</span>
           </div>
 

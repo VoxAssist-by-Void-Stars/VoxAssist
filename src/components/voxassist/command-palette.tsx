@@ -3,6 +3,7 @@
 import type { ComponentType } from "react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
+  CircleHelp,
   Focus,
   History,
   Moon,
@@ -32,6 +33,8 @@ export interface CommandPaletteProps {
   onPickUser: (username: string) => void;
   onRerun: (item: PaletteRecentItem) => void;
   recent: PaletteRecentItem[];
+  /** Speak + show voice help. */
+  onHelp?: () => void;
 }
 
 type Action = {
@@ -54,6 +57,7 @@ export function CommandPalette({
   onPickUser,
   onRerun,
   recent,
+  onHelp,
 }: CommandPaletteProps) {
   const { resolvedTheme, setTheme } = useTheme();
   const [query, setQuery] = useState("");
@@ -121,6 +125,19 @@ export function CommandPalette({
       },
     ];
 
+    if (onHelp) {
+      base.push({
+        id: "help",
+        label: "Voice help",
+        hint: "say help",
+        icon: CircleHelp,
+        run: () => {
+          onHelp();
+          onOpenChange(false);
+        },
+      });
+    }
+
     for (const username of DEMO_USERNAMES) {
       base.push({
         id: `user-${username}`,
@@ -158,6 +175,7 @@ export function CommandPalette({
     recent,
     resolvedTheme,
     onFocusAsk,
+    onHelp,
     onOpenChange,
     onPickUser,
     onRerun,

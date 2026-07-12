@@ -11,7 +11,7 @@ import {
   WandSparkles,
   Loader2,
 } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { useState } from "react"
 import type { Citation } from "@/lib/contract"
 import { Button } from "@/components/ui/button"
 import { CitationCard } from "./citation-card"
@@ -33,13 +33,15 @@ export interface AnswerPanelProps {
   friendScope?: boolean
   /** Seed Plan mode from this answer. */
   onDraftPlan?: () => void
+  /** Shared TTS state from AppShell (ElevenLabs + browser fallback). */
+  speaking?: boolean
+  onToggleSpeak?: () => void
+  speechAvailable?: boolean
 }
 
 /**
  * Renders a streamed answer with retrieval reveal, citation stagger,
- * copy, draft-plan bridge, and browser SpeechSynthesis read-aloud.
- *
- * ElevenLabs TTS is deferred (needs a server route + API key).
+ * copy, draft-plan bridge, and read-aloud (driven by parent TTS).
  */
 export function AnswerPanel({
   question,
@@ -50,30 +52,16 @@ export function AnswerPanel({
   searchingOwner,
   friendScope = false,
   onDraftPlan,
+  speaking = false,
+  onToggleSpeak,
+  speechAvailable = false,
 }: AnswerPanelProps) {
   const [copied, setCopied] = useState(false)
-  const [speaking, setSpeaking] = useState(false)
-  const speechSupported =
-    typeof window !== "undefined" && typeof window.speechSynthesis !== "undefined"
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
 
   const searching = streaming && !answer && citations.length === 0
   const ownerLabel = searchingOwner?.trim() || "your"
-
-  useEffect(() => {
-    return () => {
-      if (typeof window !== "undefined" && window.speechSynthesis) {
-        window.speechSynthesis.cancel()
-      }
-    }
-  }, [])
-
-  useEffect(() => {
-    if (streaming && speaking) {
-      window.speechSynthesis?.cancel()
-      setSpeaking(false)
-    }
-  }, [streaming, speaking])
+  const canSpeak =
+    speechAvailable && !!onToggleSpeak && !streaming && !!answer.trim()
 
   async function copyAnswer() {
     if (!answer) return
@@ -84,22 +72,6 @@ export function AnswerPanel({
     } catch {
       /* ignore */
     }
-  }
-
-  function toggleSpeak() {
-    if (!speechSupported) return
-    if (speaking) {
-      window.speechSynthesis.cancel()
-      setSpeaking(false)
-      return
-    }
-    if (!answer.trim()) return
-    const utter = new SpeechSynthesisUtterance(answer)
-    utter.onend = () => setSpeaking(false)
-    utter.onerror = () => setSpeaking(false)
-    utteranceRef.current = utter
-    setSpeaking(true)
-    window.speechSynthesis.speak(utter)
   }
 
   if (idle && !answer) {
@@ -140,12 +112,12 @@ export function AnswerPanel({
               <span className="hidden sm:inline">Draft plan</span>
             </Button>
           )}
-          {!streaming && answer && speechSupported && (
+          {canSpeak && (
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              onClick={toggleSpeak}
+              onClick={onToggleSpeak}
               aria-label={speaking ? "Stop reading aloud" : "Read answer aloud"}
             >
               {speaking ? (

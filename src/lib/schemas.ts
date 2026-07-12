@@ -17,3 +17,7 @@ export const ingestRequestSchema = z.object({
   owner: z.string().min(1).optional(),
   shared: z.boolean().optional(),
 });
+
+export const ttsRequestSchema = z.object({
+  text: z.string().min(1).max(5000),
+});

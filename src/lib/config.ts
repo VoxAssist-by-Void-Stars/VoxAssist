@@ -45,6 +45,12 @@ export const config = {
   /** When false, /api/ingest is disabled (prod default via ALLOW_HTTP_INGEST). */
   allowHttpIngest: process.env.ALLOW_HTTP_INGEST === "true",
 
+  // --- ElevenLabs TTS / STT ---
+  elevenLabsApiKey: env("ELEVENLABS_API_KEY"),
+  elevenLabsVoiceId: env("ELEVENLABS_VOICE_ID"),
+  elevenLabsModel: env("ELEVENLABS_MODEL", "eleven_flash_v2_5"),
+  elevenLabsSttModel: env("ELEVENLABS_STT_MODEL", "scribe_v2"),
+
   // --- retrieval / synthesis (real AI modules) ---
   /** Strict getter: throws when MONGODB_URI is missing (real store/retrieval). */
   get mongoUri() {
