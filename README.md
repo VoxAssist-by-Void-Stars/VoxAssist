@@ -18,7 +18,7 @@ VoxAssist turns markdown/txt notes (the kind you and your agents already write) 
 | **Plan** | Personalized project brief (stack, prefs, past work) as downloadable `.md` |
 | **Ask a friend** | Query another user’s notes limited to `shared === true` (lookup, never a bypass) |
 | **Upload** | Add a markdown/txt file; chunked, embedded, and stored under your owner |
-| **Voice** *(optional)* | Push-to-talk STT (ElevenLabs Scribe) + TTS read-aloud (ElevenLabs, browser SpeechSynthesis fallback) |
+| **Voice** * | Push-to-talk STT (ElevenLabs Scribe) + TTS read-aloud (ElevenLabs, browser SpeechSynthesis fallback) |
 
 Corpus = personal markdown with YAML frontmatter (`owner`, `shared`, tags) plus heading-aware chunks, `#tags`, and `[[wikilinks]]`.
 
@@ -34,7 +34,7 @@ Corpus = personal markdown with YAML frontmatter (`owner`, `shared`, tags) plus 
 | Embeddings | **Voyage** (`voyage-3.5`, dim 1024) |
 | `ask` LLM | **Gemini** (`gemini-2.5-flash`) |
 | `plan` LLM | **Claude Opus** |
-| TTS / STT *(optional)* | **ElevenLabs** (`eleven_flash_v2_5` + `scribe_v2`) |
+| TTS / STT  | **ElevenLabs** (`eleven_flash_v2_5` + `scribe_v2`) |
 | Deploy | **DigitalOcean App Platform** |
 
 Privacy guardrail: friend-scope retrieval enforces `shared === true`. Entering a username is a **lookup**, never a permission bypass.
@@ -111,7 +111,7 @@ For the demo, set Clerk usernames to `momen` / `rayan` (or seed owners) so notes
 | `CLAUDE_PLAN_MODEL` | Opus model for `plan` (default `claude-opus-4-8`) |
 | `MONGODB_URI` / `MONGODB_DB` | Atlas SRV string (Vector Search enabled) / db name |
 | `VOYAGE_API_KEY` / `VOYAGE_MODEL` / `EMBEDDING_DIM` | Embeddings (`voyage-3.5` / `1024`) |
-| `ELEVENLABS_API_KEY` / `ELEVENLABS_VOICE_ID` / `ELEVENLABS_MODEL` / `ELEVENLABS_STT_MODEL` | Optional voice; missing key ⇒ `/api/tts` and `/api/stt` return 501 |
+| `ELEVENLABS_API_KEY` / `ELEVENLABS_VOICE_ID` / `ELEVENLABS_MODEL` / `ELEVENLABS_STT_MODEL` | Missing key ⇒ `/api/tts` and `/api/stt` return 501 |
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` | Empty ⇒ fake auth; both set ⇒ real Clerk |
 | `CLERK_OWNER_MAP` | Optional `userId:owner` override when username ≠ vault owner |
 | `ALLOW_HTTP_INGEST` | Must be `true` for in-app upload / HTTP ingest |
